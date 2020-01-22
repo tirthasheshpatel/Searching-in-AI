@@ -1,10 +1,13 @@
 # Searching-in-AI
+
+![logo](logo.png)
+
 This repository contains the code for animations used in the article series Searching in AI.
 
 ### Part 1
 
 Part 1 explores the famous graph traversals DFS, BFS and Dijkstra's algorithm.
-The article is available on Towards Data Science: 
+The article is available on Towards Data Science:
 
 | Algorithm | Animation | YouTube Link |
 | --------- | --------- | ------------ |
