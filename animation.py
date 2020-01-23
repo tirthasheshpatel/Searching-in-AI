@@ -105,9 +105,9 @@ class GridProblem(Problem):
     directions = [(-1, -1), (0, -1), (1, -1),
                   (-1, 0),           (1,  0),
                   (-1, +1), (0, +1), (1, +1)]
-    
+
     def step_cost(self, s, action, s1): return straight_line_distance(s, s1)
-    
+
     def h(self, node): return straight_line_distance(node.state, self.goal)
 
     def result(self, state, action): 
@@ -115,10 +115,10 @@ class GridProblem(Problem):
         return action if action not in self.obstacles else state
     
     def draw_walls(self):
-        self.obstacles |= {(i, -2) for i in range(-2, self.width+4)}
-        self.obstacles |= {(i, self.height+4) for i in range(-2, self.width+4)}
-        self.obstacles |= {(-2, j) for j in range(-2, self.height+5)}
-        self.obstacles |= {(self.width+4, j) for j in range(-2, self.height+5)}
+        self.obstacles |= {(i, 0) for i in range(0, self.width+4)}
+        self.obstacles |= {(i, self.height+4) for i in range(0, self.width+4)}
+        self.obstacles |= {(0, j) for j in range(0, self.height+5)}
+        self.obstacles |= {(self.width+4, j) for j in range(0, self.height+5)}
 
     def actions(self, state):
         """You can move one cell in any of `directions` to a non-obstacle cell."""
@@ -165,6 +165,7 @@ class AnimateProblem(GridProblem):
         self.__initial_node = Node(self.initial)
         # Dictionary of reach nodes. Simlar to `explored` set.
         self.reached = {self.initial: self.__initial_node}
+        self.explored = set()
         # Frontier of nodes to be explored!
         self.frontier = PriorityQueue([self.__initial_node], key=self.solver_f)
         # We will draw each frame onto this figure
@@ -173,13 +174,6 @@ class AnimateProblem(GridProblem):
         self.ax.axis('off')
         self.ax.axis('equal')
         self.done = False
-    
-    def draw_walls(self):
-        """Draws wall around the grid to stop exploring redundant nodes"""
-        self.obstacles |= {(i, -2) for i in range(-2, self.width+4)}
-        self.obstacles |= {(i, self.height+4) for i in range(-2, self.width+4)}
-        self.obstacles |= {(-2, j) for j in range(-2, self.height+5)}
-        self.obstacles |= {(self.width+4, j) for j in range(-2, self.height+5)}
         
     def step(self, frame):
         """
@@ -191,12 +185,15 @@ class AnimateProblem(GridProblem):
         """
         # If we are done, don't do anything.
         if self.done:
-            return self.sc1, self.sc2, self.sc3, self.sc4, self.sc5, self.sc6
+            return self.sc1, self.sc2, self.sc3, self.sc4, self.sc5, self.sc6, self.sc7
         
         # Run the search algorithm for a single
         # node in the frontier.
         node = self.frontier.pop()
+        if node.state in self.explored:
+            return self.sc1, self.sc2, self.sc3, self.sc4, self.sc5, self.sc6, self.sc7
         self.solution = path_states(node)
+        self.explored.add(node.state)
         if self.is_goal(node.state):
             self.done = True
         else:
@@ -213,17 +210,20 @@ class AnimateProblem(GridProblem):
         self.ax.axis('equal')
         self.sc1 = self.ax.scatter(*transpose(self.obstacles), marker='s', color='darkgrey')
         self.sc2 = self.ax.scatter(*transpose(list(self.reached)), 1**2, marker='.', c='blue')
-        self.sc3 = self.ax.scatter(*transpose(self.solution), marker='s', c='blue')
-        self.sc4 = self.ax.scatter(*transpose([node.state]), 9**2, marker='8', c='yellow')
-        self.sc5 = self.ax.scatter(*transpose([self.initial]), 9**2, marker='D', c='green')
-        self.sc6 = self.ax.scatter(*transpose([self.goal]), 9**2, marker='8', c='red')
+        self.sc3 = self.ax.scatter(*transpose(list(self.explored)), 3**2, marker='x', c='black')
+        self.sc4 = self.ax.scatter(*transpose(self.solution), marker='s', c='blue')
+        self.sc5 = self.ax.scatter(*transpose([node.state]), 9**2, marker='8', c='yellow')
+        self.sc6 = self.ax.scatter(*transpose([self.initial]), 9**2, marker='D', c='green')
+        self.sc7 = self.ax.scatter(*transpose([self.goal]), 9**2, marker='8', c='red')
         plt.title(f"Explored: {len(self.reached)}, Path Cost: {node.path_cost}\nSolver: {self.solver}")
-        return self.sc1, self.sc2, self.sc3, self.sc4, self.sc5, self.sc6
+        return self.sc1, self.sc2, self.sc3, self.sc4, self.sc5, self.sc6, self.sc7
     
     def step_cost(self, s, action, s1):
+        if s1[0]<0 or s1[1]<0:
+            return np.inf
         return self.cell_weights[s1[0], s1[1]]
         
-    def run(self, frames=650):
+    def run(self, frames=120):
         """
         Run the main loop of the problem to
         create an animation. If you are running
@@ -246,15 +246,18 @@ class AnimateProblem(GridProblem):
         # If you want to save your animations, you can comment either
         # of the lines below.
         # NOTE: FFmpeg is needed to render a .mp4 video of the animation.
-        anim.save('/mnt/c/users/tirth/desktop/search_animations/bfs_article_small.mp4')
+        anim.save('/mnt/c/Users/tirth/Desktop/Searching in AI/ucs_large_with_weights.mp4')
         # anim.save('animation.html')
         # plt.show()
 
 
 if __name__ == "__main__":
+    np.random.seed(42)
     random.seed("aima-python")
-    # cell_weights = np.random.randint(low=1, high=20, size=3500).reshape(70, 50)
-    grid = AnimateProblem(solver='dfs', weight=1.4, height=5, width=10, initial=(1, 4), goal=(9, 4),
-                            obstacles=random_lines(X=range(10), Y=range(5), N=3, lengths=range(1, 3)))
+    cell_weights = np.random.randint(low=1, high=50, size=35*20).reshape(35, 20)
+    grid = AnimateProblem(solver='ucs', weight=1.4, height=15, width=30,
+                            cell_weights=cell_weights,
+                            initial=(1, 1), goal=(29, 14),
+                            obstacles=random_lines(X=range(30), Y=range(15), N=50, lengths=range(1, 7)))
     grid.draw_walls()
-    grid.run()
+    grid.run(500)
